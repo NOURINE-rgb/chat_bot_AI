@@ -5,9 +5,6 @@ import 'package:flutter_gemini/flutter_gemini.dart';
 // import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 void main() {
-  // FlutterNativeSplash.preserve(
-  //   widgetsBinding: WidgetsFlutterBinding.ensureInitialized(),
-  // );
   Gemini.init(apiKey: gemini_Api_Key);
   runApp(const MyApp());
 }

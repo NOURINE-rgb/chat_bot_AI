@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
-
+import 'package:chat_boot/data/question_data.dart';
 import 'package:chat_boot/widgets/chat_bubble.dart';
 import 'package:chat_boot/models/chat_message.dart';
 import 'package:chat_boot/widgets/my_text_style.dart';
+import 'package:chat_boot/widgets/question_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:image_picker/image_picker.dart';
@@ -21,16 +22,54 @@ class _ChatScreenState extends State<ChatScreen> {
   String? text;
   List<ChatMessage> messages = [];
   final Gemini gemini = Gemini.instance;
+  void onTapQuestion(String msg) {
+    setState(() {
+      onSend(msg, null);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    Widget content = (messages.isEmpty)
+        ? Expanded(
+            child: ListView(
+              children: [
+                for (final question in questions)
+                  QuestionIcon(
+                    question: question,
+                    onTap: onTapQuestion,
+                  ),
+              ],
+            ),
+          )
+        : Expanded(
+          child: ListView.builder(
+              reverse: true,
+              padding: const EdgeInsets.all(12),
+              itemCount: messages.length,
+              itemBuilder: (context, index) => ChatBubble(
+                  from: messages[messages.length - index - 1].user,
+                  profileImage:
+                      messages[messages.length - index - 1].profileImage,
+                  imagePath: messages[messages.length - index - 1].imagePath,
+                  msg: messages[messages.length - index - 1].text,
+                  time: messages[messages.length - index - 1].time),
+            ),
+        );
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
+        // centerTitle: true,
         backgroundColor: Colors.white,
-        title: myText("Gemini Chat", size: 20),
+        title: myText("Gemini Chat",
+            size: 20,
+            weight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.primary),
         leading: IconButton(
           onPressed: () {},
-          icon: const Icon(Icons.menu),
+          icon: Icon(
+            Icons.menu,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
       ),
       backgroundColor: Colors.white,
@@ -39,22 +78,8 @@ class _ChatScreenState extends State<ChatScreen> {
         height: MediaQuery.of(context).size.height,
         // padding: const EdgeInsets.all(12),/
         child: Column(
-          mainAxisSize: MainAxisSize.max,
           children: [
-            Expanded(
-              child: ListView.builder(
-                reverse: true,
-                padding: const EdgeInsets.all(12),
-                itemCount: messages.length,
-                itemBuilder: (context, index) => ChatBubble(
-                    from: messages[messages.length - index - 1].user,
-                    profileImage:
-                        messages[messages.length - index - 1].profileImage,
-                    imagePath: messages[messages.length - index - 1].imagePath,
-                    msg: messages[messages.length - index - 1].text,
-                    time: messages[messages.length - index - 1].time),
-              ),
-            ),
+            content,
             inputMessage(),
           ],
         ),
