@@ -1,5 +1,5 @@
 import 'package:chat_boot/constants.dart';
-import 'package:chat_boot/screens/second_screen.dart';
+import 'package:chat_boot/screens/auth_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 // import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -21,8 +21,9 @@ class MyApp extends StatelessWidget {
           seedColor: Colors.blue,
           primary: const Color(0xFF3369FF),
         ),
+      
       ),
-      home: const SecondScreen(),
+      home: const AuthScreen(),
     );
   }
 }
