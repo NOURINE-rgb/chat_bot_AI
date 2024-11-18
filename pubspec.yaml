@@ -40,6 +40,7 @@ dependencies:
   flutter_native_splash: ^2.4.2
   google_fonts: ^6.2.1
   flutter_animate: ^4.5.0
+  animated_text_kit: ^4.2.2
 
 dev_dependencies:
   flutter_test:

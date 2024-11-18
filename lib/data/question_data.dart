@@ -1,4 +1,5 @@
 import 'package:chat_boot/models/question.dart';
+import 'package:flutter/material.dart';
 
 List<Question> questions = [
   const Question(
@@ -26,4 +27,9 @@ List<Question> questions = [
       "How do you say \"how are you\"in arabic?",
     ],
   ),
+];
+const colorizeColors = [
+  // Colors.purple,
+  Colors.blue,
+  Color.fromARGB(255, 219, 167, 89)
 ];
