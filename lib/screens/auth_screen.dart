@@ -1,5 +1,6 @@
 import 'package:chat_boot/widgets/animte_text.dart';
 import 'package:chat_boot/widgets/my_text_style.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,13 +13,58 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   bool visible = true;
+  bool isAuthenticated = false;
   String mode = "in";
+  String enteredEmail = "";
+  String password = "";
+  String userName = "";
+  final firebaseAuth = FirebaseAuth.instance;
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  void submit() async {
+    if (!formKey.currentState!.validate()) {
+      return;
+    }
+    formKey.currentState!.save();
+    try {
+      setState(() {
+        isAuthenticated = true;
+      });
+      if (mode == "in") {
+        final userCredential = await firebaseAuth.signInWithEmailAndPassword(
+            email: enteredEmail, password: password);
+        print(userCredential);
+      } else {
+        final userCredential =
+            await firebaseAuth.createUserWithEmailAndPassword(
+                email: enteredEmail, password: password);
+        print(userCredential);
+      }
+    } on FirebaseAuthException catch (e) {
+      print("Authentication failed ***************");
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            behavior: SnackBarBehavior.floating,
+            content: Text(e.message ?? "Authentication Failed"),
+          ),
+        );
+      }
+      setState(() {
+        isAuthenticated = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     print("this the build method it's here ...........**");
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      // resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -40,6 +86,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   children: [
                     if (mode == "up")
                       TextFormField(
+                        initialValue: userName,
                         textCapitalization: TextCapitalization.words,
                         decoration: InputDecoration(
                           hintText: "Full name",
@@ -60,11 +107,19 @@ class _AuthScreenState extends State<AuthScreen> {
                                 color: Colors.blue, width: 1.5), // On focus
                           ),
                         ),
+                        validator: (value) {
+                          if (value == null || value.trim().length < 4) {
+                            return "Please enter at least 4 caracters";
+                          }
+                          return null;
+                        },
+                        onSaved: (newValue) => password = newValue!,
                       ),
                     const SizedBox(
                       height: 30,
                     ),
                     TextFormField(
+                      initialValue: enteredEmail,
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         iconColor: Colors.grey[100],
@@ -86,11 +141,21 @@ class _AuthScreenState extends State<AuthScreen> {
                               color: Colors.blue, width: 1.5), // On focus
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null ||
+                            value.trim().isEmpty ||
+                            !value.contains("@")) {
+                          return "Error , please enter a valid email";
+                        }
+                        return null;
+                      },
+                      onSaved: (newValue) => enteredEmail = newValue!,
                     ),
                     const SizedBox(
                       height: 30,
                     ),
                     TextFormField(
+                      initialValue: password,
                       obscureText: visible,
                       decoration: InputDecoration(
                         hintText: "Your Password",
@@ -122,6 +187,13 @@ class _AuthScreenState extends State<AuthScreen> {
                               color: Colors.blue, width: 1.5), // On focus
                         ),
                       ),
+                      validator: (value) {
+                        if (value == null || value.trim().length < 6) {
+                          return "enter a strong password with over 6 caracters";
+                        }
+                        return null;
+                      },
+                      onSaved: (newValue) => password = newValue!,
                     ),
                     const SizedBox(
                       height: 10,
@@ -147,19 +219,25 @@ class _AuthScreenState extends State<AuthScreen> {
                               weight: FontWeight.bold),
                         ],
                       ),
-                    Container(
-                      margin: const EdgeInsets.only(top: 10, bottom: 20),
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: myText("Sign $mode",
-                          color: Colors.white,
-                          size: 18,
-                          weight: FontWeight.w600),
-                    ),
+                    isAuthenticated
+                        ? const CircularProgressIndicator()
+                        : InkWell(
+                            onTap: submit,
+                            child: Container(
+                              margin:
+                                  const EdgeInsets.only(top: 10, bottom: 20),
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              alignment: Alignment.center,
+                              child: myText("Sign $mode",
+                                  color: Colors.white,
+                                  size: 18,
+                                  weight: FontWeight.w600),
+                            ),
+                          ),
                   ],
                 ),
               ),
