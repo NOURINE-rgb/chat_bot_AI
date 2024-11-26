@@ -5,6 +5,7 @@ import 'package:chat_boot/widgets/chat_bubble.dart';
 import 'package:chat_boot/models/chat_message.dart';
 import 'package:chat_boot/widgets/my_text_style.dart';
 import 'package:chat_boot/widgets/question_icon.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,7 +44,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           )
         : Expanded(
-          child: ListView.builder(
+            child: ListView.builder(
               reverse: true,
               padding: const EdgeInsets.all(12),
               itemCount: messages.length,
@@ -55,7 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   msg: messages[messages.length - index - 1].text,
                   time: messages[messages.length - index - 1].time),
             ),
-        );
+          );
     return Scaffold(
       appBar: AppBar(
         // centerTitle: true,
@@ -64,12 +65,16 @@ class _ChatScreenState extends State<ChatScreen> {
             size: 20,
             weight: FontWeight.bold,
             color: Theme.of(context).colorScheme.primary),
-        leading: IconButton(
-          onPressed: () {},
-          icon: Icon(
-            Icons.menu,
-            color: Theme.of(context).colorScheme.primary,
-          ),
+      ),
+      drawer: Drawer(
+        backgroundColor: Colors.grey.shade400,
+        child: TextButton.icon(
+          onPressed: () {
+            
+            FirebaseAuth.instance.signOut();
+          },
+          icon: const Icon(Icons.logout),
+          label: const Text("log out"),
         ),
       ),
       backgroundColor: Colors.white,
@@ -221,3 +226,5 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 }
+
+
