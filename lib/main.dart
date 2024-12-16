@@ -3,7 +3,6 @@ import 'package:chat_boot/firebase_options.dart';
 import 'package:chat_boot/riverpod/signedup.dart';
 import 'package:chat_boot/screens/auth_screen.dart';
 import 'package:chat_boot/screens/chat_screen.dart';
-import 'package:chat_boot/screens/reset_password/email.dart';
 import 'package:chat_boot/screens/second_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -11,6 +10,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 // import 'package:flutter_native_splash/flutter_native_splash.dart';
+
+
+//min nji men sport nzid ta3 retrieve data the image ofc
+// and show it normally 
+// and ofv from voice to text
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,9 +61,6 @@ class MyApp extends ConsumerWidget {
     );
   }
 }
+// i need the package of flutter_fotnev to store the envirenment variable
 
-
-// reset password
 // handle the voice message to text
-// pass data to firestore
-// write the logic for see the history of chat

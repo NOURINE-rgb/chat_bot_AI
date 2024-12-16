@@ -97,8 +97,6 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     }
   }
 
-// see if hte user is loged for the first time by  checking the firestore doc and exist method
-// and add the logic for riverpod to switch between screens if issignup for the first itme so by if statement
   void signinGoogle() async {
     try {
       final userGoogle = await GoogleSignIn().signIn();
@@ -112,43 +110,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       final userCredential = await firebaseAuth.signInWithCredential(cred);
       print("hhhhh *************************");
       storeInFireStore("google", userCredential);
-      if (userCredential.additionalUserInfo!.isNewUser) {
-        // ref.read(signedUpProvider.notifier).changeMode(true);
-      }
       //storeInFireStore("google", userCredential);
-    } catch (e) {
-      // problem ta3 google ki zok ktar men facebook nikmha mrahach ywari welcome
-      // lel new user ki webiii
-
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).clearSnackBars();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 3),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            behavior: SnackBarBehavior.floating,
-            content: Text(e.toString()),
-          ),
-        );
-      }
-    }
-  }
-
-  void signinFacebook() async {
-    try {
-      final userFc = await FacebookAuth.instance.login();
-
-      if (userFc == LoginStatus.failed) {
-        return;
-      }
-
-      final cred =
-          FacebookAuthProvider.credential(userFc.accessToken!.tokenString);
-      final userCredential = await firebaseAuth.signInWithCredential(cred);
-      print(userCredential);
-      // i think rani kamalt google chayala khasni ndakhal username madakhlahch 3en tari9 google fc
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).clearSnackBars();
@@ -322,7 +284,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                                 size: 14,
                                 weight: FontWeight.bold),
                             const Spacer(),
-                            InkWell(
+                            GestureDetector(
                               onTap: () => Navigator.of(context).push(
                                 MaterialPageRoute(
                                   builder: (context) => const ForgetPassword(),

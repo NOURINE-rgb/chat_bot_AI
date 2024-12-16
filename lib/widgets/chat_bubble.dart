@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:chat_boot/widgets/my_text_style.dart';
 import 'package:flutter/material.dart';
+import 'package:transparent_image/transparent_image.dart';
 
 class ChatBubble extends StatelessWidget {
   const ChatBubble(
@@ -46,16 +47,19 @@ class ChatBubble extends StatelessWidget {
             if (imagePath != null)
               Container(
                 height: 120,
-                width: 120,
+                width: 130,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(15),
-                  image: DecorationImage(
-                    image: FileImage(
-                      File(imagePath!),
-                    ),
-                    fit: BoxFit.cover,
-                  ),
                 ),
+                child: !imagePath!.startsWith('h')
+                    ? Image.file(
+                        File(imagePath!),
+                        fit: BoxFit.cover,
+                      )
+                    : FadeInImage(
+                        fit: BoxFit.fill,
+                        placeholder: MemoryImage(kTransparentImage),
+                        image: NetworkImage(imagePath!)),
               ),
             Container(
                 margin: const EdgeInsets.all(10),

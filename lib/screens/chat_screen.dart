@@ -1,14 +1,18 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:chat_boot/data/question_data.dart';
+import 'package:chat_boot/screens/auth_screen.dart';
 import 'package:chat_boot/widgets/chat_bubble.dart';
 import 'package:chat_boot/models/chat_message.dart';
+import 'package:chat_boot/widgets/drawer.dart';
 import 'package:chat_boot/widgets/my_text_style.dart';
 import 'package:chat_boot/widgets/question_icon.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -21,12 +25,21 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   TextEditingController textController = TextEditingController();
   String? text;
+  bool open = false;
+  List<ChatMessage> historyItemsQ = [];
+  List<ChatMessage> historyItemsA = [];
   List<ChatMessage> messages = [];
   final Gemini gemini = Gemini.instance;
   void onTapQuestion(String msg) {
     setState(() {
       onSend(msg, null);
     });
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loading();
   }
 
   @override
@@ -59,23 +72,17 @@ class _ChatScreenState extends State<ChatScreen> {
           );
     return Scaffold(
       appBar: AppBar(
-        // centerTitle: true,
         backgroundColor: Colors.white,
         title: myText("Gemini Chat",
             size: 20,
             weight: FontWeight.bold,
             color: Theme.of(context).colorScheme.primary),
       ),
-      drawer: Drawer(
-        backgroundColor: Colors.grey.shade400,
-        child: TextButton.icon(
-          onPressed: () {
-            
-            FirebaseAuth.instance.signOut();
-          },
-          icon: const Icon(Icons.logout),
-          label: const Text("log out"),
-        ),
+      drawer: MyDrawer(
+        isOpen: open,
+        onTapHistory: onTapHistory,
+        historyItemsA: historyItemsA,
+        historyItemsQ: historyItemsQ,
       ),
       backgroundColor: Colors.white,
       body: SizedBox(
@@ -153,6 +160,109 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  void onTapHistory(List<ChatMessage> messagesAQ) {
+    setState(() {
+      messages = messagesAQ;
+    });
+  }
+
+  void addMessageFireStore(String sender, FieldValue time, String userId,
+      String message, String? imageUrl) async {
+    final Map<String, dynamic> chatMessage = {
+      "time": time,
+      "text": message,
+      "msgProvider": sender,
+      "imageUrl": imageUrl,
+    };
+    try {
+      await fireStore
+          .collection("chat")
+          .doc(userId)
+          .collection("messages")
+          .add(chatMessage);
+    } catch (e) {
+      print("error occured: $e  ************************");
+    }
+  }
+
+// here i will serch for the code to return the image path from cloudinary
+// buy getting the url from firestore and store it in chatmessage
+// and you know what i already know use your shit brain
+  void loading() async {
+    final history = await fireStore
+        .collection("chat")
+        .doc(firebaseAuth.currentUser!.uid)
+        .collection("messages")
+        .orderBy("time", descending: true)
+        .get();
+    for (final h in history.docs) {
+      print("***************************");
+      Timestamp time = h.data()["time"];
+      final imagePath = h.data()["imageUrl"];
+      if (h.data()["msgProvider"] != "gemini") {
+        setState(() {
+          historyItemsQ = [
+            ...historyItemsQ,
+            ChatMessage(
+              id: h.id,
+              user: "user",
+              time: time.toDate(),
+              text: h.data()["text"],
+              imagePath: imagePath,
+            ),
+          ];
+        });
+      } else {
+        historyItemsA = [
+          ...historyItemsA,
+          ChatMessage(
+            id: h.id,
+            user: "gemini",
+            time: time.toDate(),
+            text: h.data()["text"],
+          ),
+        ];
+      }
+    }
+  }
+
+  Future<String> uploadImageToCloudinary(
+    String imagePath,
+  ) async {
+    print("we are in upload image function ***********************");
+    String imageUrl = "";
+    const String cloudName = "dsmzourse";
+    const String uploadPreset = "my_preset";
+    final url =
+        Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+    final request = http.MultipartRequest(
+      "POST",
+      url,
+    )
+      ..fields["upload_preset"] = uploadPreset
+      ..files.add(
+        await http.MultipartFile.fromPath('file', imagePath),
+      );
+    try {
+      print("request send ******************in process");
+      final response = await request.send();
+      if (response.statusCode == 200) {
+        print("response == 200 so it's successful");
+        final responseBody = await response.stream.bytesToString();
+        var responseJson = json.decode(responseBody);
+        imageUrl = responseJson["secure_url"];
+        print(
+            "it's uploaded successfully : $responseBody  **************************");
+      } else {
+        // If the upload failed, print the error code
+        print('Failed to upload image. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print("error occured : $e");
+    }
+    return imageUrl;
+  }
+
   void sendImage() async {
     ImagePicker imagePicker = ImagePicker();
     XFile? pickedImage =
@@ -161,6 +271,7 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     String imagePath = pickedImage.path;
+
     final chatMessage = ChatMessage(
         id: "0",
         user: "user",
@@ -170,8 +281,10 @@ class _ChatScreenState extends State<ChatScreen> {
     onSend("describe the image", chatMessage);
   }
 
-  void onSend(String message, ChatMessage? image) {
+  void onSend(String message, ChatMessage? image) async {
     String question = message;
+    final userId = firebaseAuth.currentUser!.uid;
+    String imageUrl = "";
     ChatMessage chatmessage = image ??
         ChatMessage(
           id: "0",
@@ -184,6 +297,7 @@ class _ChatScreenState extends State<ChatScreen> {
       textController.clear();
       messages.add(chatmessage);
     });
+
     FocusScope.of(context).unfocus();
     List<Uint8List>? images =
         image == null ? [] : [File(image.imagePath!).readAsBytesSync()];
@@ -193,7 +307,7 @@ class _ChatScreenState extends State<ChatScreen> {
         question,
         images: images,
       )
-          .listen((event) {
+          .listen((event) async {
         print("we are generating the response here");
         ChatMessage? lastMessage = messages.lastOrNull;
         if (lastMessage != null && lastMessage.user == "gemini") {
@@ -201,9 +315,20 @@ class _ChatScreenState extends State<ChatScreen> {
             "",
             (previousValue, element) => "$previousValue ${element.text}",
           );
-          setState(() {
-            lastMessage.text += response;
-          });
+          lastMessage.text += response;
+          final lastOne = await fireStore
+              .collection("chat")
+              .doc(userId)
+              .collection('messages')
+              .orderBy("time", descending: true)
+              .limit(1)
+              .get();
+          if (lastOne.docs.isNotEmpty) {
+            await lastOne.docs.first.reference.update({
+              "text": lastMessage.text,
+            });
+          }
+          setState(() {});
         } else {
           String response = event.content!.parts!.fold(
             "",
@@ -219,12 +344,24 @@ class _ChatScreenState extends State<ChatScreen> {
           setState(() {
             messages.add(newMessage);
           });
+          addMessageFireStore(
+              "gemini", FieldValue.serverTimestamp(), userId, response, "");
         }
       });
     } catch (e) {
       print(e);
+    } finally {
+      // add the deleted code to add the msg of the user in firestore and the image and delete the
+      // imageurl from  the gemini msg
+
+      if (image != null) {
+        print("image not null *************************");
+        imageUrl = await uploadImageToCloudinary(image.imagePath!);
+        print("$imageUrl ***********************");
+      }
+      addMessageFireStore(
+          "user", FieldValue.serverTimestamp(), userId, question, imageUrl);
     }
+    //
   }
 }
-
-
