@@ -62,5 +62,6 @@ class MyApp extends ConsumerWidget {
   }
 }
 // i need the package of flutter_fotnev to store the envirenment variable
-
+// handle the multiple language in speech to text
 // handle the voice message to text
+// don't forget to push the code to github right !

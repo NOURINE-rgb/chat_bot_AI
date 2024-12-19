@@ -45,11 +45,11 @@ dependencies:
   flutter_riverpod: ^2.6.1
   animate_do: ^3.3.4
   google_sign_in: ^6.2.2
-  flutter_facebook_auth: ^7.1.1
   flutter_svg: ^2.0.15
   http: ^1.2.2
   cloudinary: ^1.2.0
   transparent_image: ^2.0.1
+  speech_to_text: ^7.0.0
 
 dev_dependencies:
   flutter_test:

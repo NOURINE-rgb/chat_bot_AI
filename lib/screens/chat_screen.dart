@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:chat_boot/data/question_data.dart';
+import 'package:chat_boot/riverpod/is_listining_provider.dart';
 import 'package:chat_boot/screens/auth_screen.dart';
+import 'package:chat_boot/services/speech_to_text.dart';
 import 'package:chat_boot/widgets/chat_bubble.dart';
 import 'package:chat_boot/models/chat_message.dart';
 import 'package:chat_boot/widgets/drawer.dart';
@@ -11,21 +13,23 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_gemini/flutter_gemini.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
   @override
-  State<ChatScreen> createState() {
+  ConsumerState<ChatScreen> createState() {
     return _ChatScreenState();
   }
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   TextEditingController textController = TextEditingController();
-  String? text;
+  late MySpeechToText speachToTextHelper;
   bool open = false;
+  bool isListening = false;
   List<ChatMessage> historyItemsQ = [];
   List<ChatMessage> historyItemsA = [];
   List<ChatMessage> messages = [];
@@ -39,11 +43,23 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    speachToTextHelper = MySpeechToText(ref: ref);
+    speachToTextHelper.initSpeech();
     loading();
+  }
+
+  void resultText(String result) {
+    print("result text function ********************\n");
+    setState(() {
+      print('$result ***********************\n');
+      textController.text = result;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    isListening = ref.watch(isListiningProvider);
+    print("update the ui islisttening is $isListening ***************");
     Widget content = (messages.isEmpty)
         ? Expanded(
             child: ListView(
@@ -98,7 +114,6 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
     );
   }
-
   Widget inputMessage() {
     return Row(
       children: [
@@ -125,17 +140,21 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
               IconButton(
-                onPressed: () {},
+                onPressed: () {
+                  isListening
+                      ? speachToTextHelper.stopListening()
+                      : speachToTextHelper.startListening(resultText);
+                },
                 icon: Icon(
-                  Icons.mic,
+                  isListening ? Icons.mic_off : Icons.mic,
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               IconButton(
                 onPressed: () {
                   if (textController.text.trim().isNotEmpty) {
-                    text = textController.text;
-                    onSend(text!, null);
+                    // text = textController.text;
+                    onSend(textController.text, null);
                   }
                 },
                 icon: Icon(
@@ -185,9 +204,6 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-// here i will serch for the code to return the image path from cloudinary
-// buy getting the url from firestore and store it in chatmessage
-// and you know what i already know use your shit brain
   void loading() async {
     final history = await fireStore
         .collection("chat")
@@ -293,7 +309,6 @@ class _ChatScreenState extends State<ChatScreen> {
           text: message,
         );
     setState(() {
-      text = null;
       textController.clear();
       messages.add(chatmessage);
     });
